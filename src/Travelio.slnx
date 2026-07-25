@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="Travelio.Api/Travelio.Api.csproj" />
+  <Project Path="Travelio.Application/Travelio.Application.csproj" />
+  <Project Path="Travelio.Domain/Travelio.Domain.csproj" />
+  <Project Path="Travelio.Infrastructure/Travelio.Infrastructure.csproj" />
+  <Project Path="Travelio.Tests/Travelio.Tests.csproj" />
+  <Project Path="Travelio.Workers/Travelio.Workers.csproj" />
+</Solution>
