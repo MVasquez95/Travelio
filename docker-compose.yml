@@ -18,7 +18,7 @@ services:
     image: python:3.11-slim
     container_name: provider-simulator-1
     volumes:
-      - ./:/app:ro
+      - ./provider-simulator:/app:ro
     working_dir: /app
     command: python provider_simulator_1.py --port 9001
     ports:
@@ -27,7 +27,7 @@ services:
     image: python:3.11-slim
     container_name: provider-simulator-2
     volumes:
-      - ./:/app:ro
+      - ./provider-simulator:/app:ro
     working_dir: /app
     command: python provider_simulator_2.py --port 9002
     ports:
