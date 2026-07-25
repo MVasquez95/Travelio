@@ -1,0 +1,241 @@
+openapi: 3.0.3
+info:
+  title: Travelio API
+  version: 1.0.0
+  description: API spec para Travelio MVP — agregador de ofertas y motor de reservas
+servers:
+  - url: http://localhost:8080/api/v1
+paths:
+  /search:
+    post:
+      summary: Buscar opciones de viaje
+      operationId: search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Lista de ofertas normalizadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+  /prebookings:
+    post:
+      summary: Reservar temporalmente (pre-book)
+      operationId: createPreBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreBookingRequest'
+      responses:
+        '201':
+          description: Pre-booking creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreBookingResponse'
+        '409':
+          description: Conflicto (oferta ya reservada)
+  /bookings:
+    post:
+      summary: Confirmar una reserva (Booking)
+      operationId: createBooking
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+      responses:
+        '201':
+          description: Reserva confirmada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '409':
+          description: Idempotency conflict or duplicate booking
+        '410':
+          description: Pre-booking expired
+  /bookings/{bookingId}:
+    get:
+      summary: Consultar estado de booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Estado del booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+  /bookings/{bookingId}/cancel:
+    post:
+      summary: Cancelar booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Cancelación aceptada
+  /providers/callbacks:
+    post:
+      summary: Callbacks de proveedores (webhooks)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Acknowledged
+components:
+  schemas:
+    SearchRequest:
+      type: object
+      required: [origin, destination, start_date, end_date]
+      properties:
+        origin:
+          type: string
+        destination:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        passengers:
+          type: integer
+          default: 1
+        filters:
+          type: object
+    Offer:
+      type: object
+      properties:
+        offer_id:
+          type: string
+        provider:
+          type: string
+        service_type:
+          type: string
+          enum: [hotel, flight, package, activity]
+        price:
+          type: object
+          properties:
+            amount:
+              type: number
+              format: double
+            currency:
+              type: string
+        score:
+          type: number
+        availability:
+          type: integer
+        bookable:
+          type: boolean
+        rate_details:
+          type: object
+    SearchResponse:
+      type: object
+      properties:
+        search_id:
+          type: string
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Offer'
+        cache_ttl_seconds:
+          type: integer
+    PreBookingRequest:
+      type: object
+      required: [client_id, offer_id]
+      properties:
+        client_id:
+          type: string
+        offer_id:
+          type: string
+        search_id:
+          type: string
+        hold_time_seconds:
+          type: integer
+        metadata:
+          type: object
+    PreBookingResponse:
+      type: object
+      properties:
+        pre_booking_id:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        provider_reference:
+          type: string
+    BookingRequest:
+      type: object
+      required: [client_id]
+      properties:
+        client_id:
+          type: string
+        pre_booking_id:
+          type: string
+        offer_id:
+          type: string
+        payment:
+          type: object
+        metadata:
+          type: object
+    BookingResponse:
+      type: object
+      properties:
+        booking_id:
+          type: string
+        status:
+          type: string
+        provider_booking_id:
+          type: string
+        amount:
+          type: object
+          properties:
+            amount:
+              type: number
+            currency:
+              type: string
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
