@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException
 import uvicorn
 
 app = FastAPI()
+bookings_by_key = {}
 
 @app.post('/search')
 async def search(payload: dict):
@@ -39,7 +40,13 @@ async def confirm(payload: dict):
     time.sleep(random.uniform(0.05, 0.3))
     if random.random() < 0.05:
         raise HTTPException(status_code=500, detail='internal error')
-    return {'ok': True, 'booking_ref': f'P2BOOK{random.randint(10000,99999)}'}
+    key = payload.get('idempotencyKey')
+    if key in bookings_by_key:
+        return {'ok': True, 'booking_ref': bookings_by_key[key]}
+    booking_ref = f'P2BOOK{random.randint(10000,99999)}'
+    if key:
+        bookings_by_key[key] = booking_ref
+    return {'ok': True, 'booking_ref': booking_ref}
 
 @app.post('/revoke')
 async def revoke(payload: dict):

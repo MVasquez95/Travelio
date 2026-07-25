@@ -10,6 +10,7 @@ from pydantic import BaseModel
 import uvicorn
 
 app = FastAPI()
+bookings_by_key = {}
 
 class SearchReq(BaseModel):
     origin: str
@@ -52,7 +53,12 @@ async def book(payload: dict):
     time.sleep(random.uniform(0.05, 0.3))
     if random.random() < 0.08:
         raise HTTPException(status_code=502, detail='simulated gateway error')
+    key = payload.get('idempotencyKey')
+    if key in bookings_by_key:
+        return {'success': True, 'booking_id': bookings_by_key[key]}
     booking_id = f'p1-book-{random.randint(10000,99999)}'
+    if key:
+        bookings_by_key[key] = booking_id
     return {'success': True, 'booking_id': booking_id}
 
 @app.post('/cancel')

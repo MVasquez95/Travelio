@@ -122,16 +122,16 @@ components:
   schemas:
     SearchRequest:
       type: object
-      required: [origin, destination, start_date, end_date]
+      required: [origin, destination, startDate, endDate]
       properties:
         origin:
           type: string
         destination:
           type: string
-        start_date:
+        startDate:
           type: string
           format: date
-        end_date:
+        endDate:
           type: string
           format: date
         passengers:
@@ -178,13 +178,13 @@ components:
           type: integer
     PreBookingRequest:
       type: object
-      required: [client_id, offer_id]
+      required: [clientId, offerId]
       properties:
-        client_id:
+        clientId:
           type: string
-        offer_id:
+        offerId:
           type: string
-        search_id:
+        searchId:
           type: string
         hold_time_seconds:
           type: integer
@@ -204,11 +204,11 @@ components:
           type: string
     BookingRequest:
       type: object
-      required: [client_id]
+      required: [clientId, preBookingId]
       properties:
-        client_id:
+        clientId:
           type: string
-        pre_booking_id:
+        preBookingId:
           type: string
         offer_id:
           type: string

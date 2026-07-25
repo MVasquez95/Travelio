@@ -6,5 +6,6 @@ namespace Travelio.Application.Interfaces
     public interface IPreBookingService
     {
         Task<PreBookingResponseDto> CreatePreBookingAsync(PreBookingRequestDto request);
+        Task<PreBookingResponseDto?> GetPreBookingAsync(string preBookingId);
     }
 }

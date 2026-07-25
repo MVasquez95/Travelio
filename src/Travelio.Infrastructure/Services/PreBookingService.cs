@@ -45,4 +45,15 @@ public sealed class PreBookingService : IPreBookingService
         }
         finally { await _redis.KeyDeleteAsync(lockKey); }
     }
+
+    public async Task<PreBookingResponseDto?> GetPreBookingAsync(string preBookingId)
+    {
+        if (!Guid.TryParse(preBookingId, out var id)) return null;
+        var hold = await _db.PreBookings.FindAsync(id);
+        return hold is null ? null : new PreBookingResponseDto
+        {
+            PreBookingId = hold.Id.ToString(), ExpiresAt = hold.ExpiresAt,
+            Status = hold.Status, ProviderReference = hold.ProviderPrebookingId
+        };
+    }
 }

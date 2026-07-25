@@ -24,10 +24,10 @@ namespace Travelio.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(string id)
+        public async Task<IActionResult> Get(string id)
         {
-            // For MVP this endpoint is a placeholder. Implement retrieval in next iteration.
-            return NotFound();
+            var hold = await _preBookingService.GetPreBookingAsync(id);
+            return hold is null ? NotFound() : Ok(hold);
         }
     }
 }

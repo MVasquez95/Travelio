@@ -6,6 +6,8 @@ using Travelio.Application.Interfaces;
 using Travelio.Infrastructure.Data;
 using Travelio.Infrastructure.Services;
 using StackExchange.Redis;
+using Prometheus;
+using Travelio.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,9 @@ var configuration = builder.Configuration;
 // Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHealthChecks()
+    .AddNpgSql(configuration.GetConnectionString("DefaultConnection")!)
+    .AddRedis(configuration["Redis:Configuration"]!);
 // Swagger/ OpenAPI generation is optional; enable by adding Swashbuckle and related configuration when ready.
 
 // EF Core
@@ -46,8 +51,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseHttpMetrics();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
+app.MapMetrics("/metrics");
 
 app.Run();

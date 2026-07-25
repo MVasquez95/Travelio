@@ -1,10 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Travelio.Application.DTOs
 {
     public class BookingRequestDto
     {
-        public string ClientId { get; set; }
-        public string PreBookingId { get; set; }
-        public string OfferId { get; set; }
-        public object Payment { get; set; }
+        [Required] public string ClientId { get; set; } = null!;
+        [Required] public string PreBookingId { get; set; } = null!;
     }
 }
