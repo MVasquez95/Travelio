@@ -23,6 +23,7 @@ CREATE TABLE raw_provider_responses (
 CREATE TABLE offers_normalized (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   provider_id UUID REFERENCES providers(id) ON DELETE SET NULL,
+  provider_code TEXT NOT NULL,
   provider_offer_id TEXT,
   service_type TEXT,
   price_amount NUMERIC(12,2),
@@ -71,17 +72,19 @@ CREATE TABLE bookings (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
-CREATE UNIQUE INDEX uq_bookings_idempotency_key ON bookings(idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE UNIQUE INDEX uq_bookings_client_idempotency_key ON bookings(client_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE UNIQUE INDEX uq_bookings_pre_booking_id ON bookings(pre_booking_id) WHERE pre_booking_id IS NOT NULL;
 
 CREATE TABLE idempotency_keys (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  key TEXT NOT NULL UNIQUE,
+  key TEXT NOT NULL,
   client_id TEXT,
-  request_hash JSONB,
+  request_hash TEXT NOT NULL,
   result_booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   expires_at TIMESTAMPTZ
 );
+CREATE UNIQUE INDEX uq_idempotency_keys_client_key ON idempotency_keys(client_id, key);
 
 CREATE TABLE audit_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

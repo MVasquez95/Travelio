@@ -26,7 +26,7 @@ namespace Travelio.Api.Controllers
 
             try
             {
-                var resp = await _bookingService.CreateBookingAsync(request, idKey);
+                var resp = await _bookingService.CreateBookingAsync(request, idKey.ToString());
                 return CreatedAtAction(nameof(Get), new { bookingId = resp.BookingId }, resp);
             }
             catch (System.InvalidOperationException ex)
@@ -36,9 +36,18 @@ namespace Travelio.Api.Controllers
         }
 
         [HttpGet("{bookingId}")]
-        public IActionResult Get(string bookingId)
+        public async Task<IActionResult> Get(string bookingId)
         {
-            return NotFound();
+            var booking = await _bookingService.GetBookingAsync(bookingId);
+            return booking is null ? NotFound() : Ok(booking);
+        }
+
+        [HttpPost("{bookingId}/cancel")]
+        public async Task<IActionResult> Cancel(string bookingId)
+        {
+            try { return Ok(await _bookingService.CancelBookingAsync(bookingId)); }
+            catch (KeyNotFoundException) { return NotFound(); }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
         }
     }
 }

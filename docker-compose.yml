@@ -10,38 +10,54 @@ services:
       - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./ddl.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
   redis:
     image: redis:7
     ports:
       - '6379:6379'
   provider-simulator-1:
-    image: python:3.11-slim
+    build: ./provider-simulator
     container_name: provider-simulator-1
-    volumes:
-      - ./provider-simulator:/app:ro
-    working_dir: /app
     command: python provider_simulator_1.py --port 9001
     ports:
       - '9001:9001'
   provider-simulator-2:
-    image: python:3.11-slim
+    build: ./provider-simulator
     container_name: provider-simulator-2
-    volumes:
-      - ./provider-simulator:/app:ro
-    working_dir: /app
     command: python provider_simulator_2.py --port 9002
     ports:
       - '9002:9002'
   travelio-api:
-    image: mcr.microsoft.com/dotnet/aspnet:8.0
+    build:
+      context: .
+      dockerfile: src/Travelio.Api/Dockerfile
     container_name: travelio-api
-    # Placeholder - replace with built image or local build in dev
-    command: sleep infinity
     ports:
       - '8080:80'
     depends_on:
       - postgres
       - redis
+      - provider-simulator-1
+      - provider-simulator-2
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=travelio;Username=travelio;Password=travelio
+      Redis__Configuration: redis:6379
+      Providers__Provider1__BaseUrl: http://provider-simulator-1:9001
+      Providers__Provider2__BaseUrl: http://provider-simulator-2:9002
+  travelio-worker:
+    build:
+      context: .
+      dockerfile: src/Travelio.Workers/Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - provider-simulator-1
+      - provider-simulator-2
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=travelio;Username=travelio;Password=travelio
+      Redis__Configuration: redis:6379
+      Providers__Provider1__BaseUrl: http://provider-simulator-1:9001
+      Providers__Provider2__BaseUrl: http://provider-simulator-2:9002
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
