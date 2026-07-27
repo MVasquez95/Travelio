@@ -34,7 +34,7 @@ public sealed class BookingService : IBookingService
         if (preBooking.Status != "held" || preBooking.ExpiresAt <= DateTime.UtcNow) throw new InvalidOperationException("Pre-booking has expired or was already used.");
         if (preBooking.Offer is null || string.IsNullOrWhiteSpace(preBooking.ProviderPrebookingId)) throw new InvalidOperationException("Pre-booking is incomplete.");
 
-        var booking = new Booking { ClientId = request.ClientId, PreBookingId = preBooking.Id, IdempotencyKey = idempotencyKey, Status = "pending", Amount = preBooking.Offer.PriceAmount, Currency = preBooking.Offer.Currency, Metadata = "{}" };
+        var booking = new Booking { Id = Guid.NewGuid(), ClientId = request.ClientId, PreBookingId = preBooking.Id, IdempotencyKey = idempotencyKey, Status = "pending", Amount = preBooking.Offer.PriceAmount, Currency = preBooking.Offer.Currency, Metadata = "{}" };
         var key = new IdempotencyKey { ClientId = request.ClientId, Key = idempotencyKey, RequestHash = hash, ResultBookingId = booking.Id, ExpiresAt = DateTime.UtcNow.AddDays(1) };
         preBooking.Status = "confirming";
         _db.Bookings.Add(booking);

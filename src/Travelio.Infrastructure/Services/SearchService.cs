@@ -65,7 +65,15 @@ public sealed class SearchService : ISearchService
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            var response = await _clients.CreateClient(provider).PostAsJsonAsync("/search", request, timeout.Token);
+            var providerRequest = new
+            {
+                origin = request.Origin,
+                destination = request.Destination,
+                start_date = request.StartDate.ToString("yyyy-MM-dd"),
+                end_date = request.EndDate.ToString("yyyy-MM-dd"),
+                passengers = request.Passengers
+            };
+            var response = await _clients.CreateClient(provider).PostAsJsonAsync("/search", providerRequest, timeout.Token);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Provider {Provider} returned {StatusCode}", provider, response.StatusCode);
