@@ -54,3 +54,17 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/search -Content
 dotnet build src/Travelio.slnx --no-restore
 dotnet test src/Travelio.Tests/Travelio.Tests.csproj --no-restore
 ```
+
+## Ejecutar simuladores sin Docker
+
+Docker es el camino recomendado. Si necesitas depurar un proveedor desde el host, crea un entorno virtual aislado:
+
+```powershell
+cd provider-simulator
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python provider_simulator_1.py --port 9001
+```
+
+En otra terminal activada ejecuta `python provider_simulator_2.py --port 9002`.
