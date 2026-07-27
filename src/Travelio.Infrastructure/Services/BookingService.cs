@@ -18,7 +18,7 @@ public sealed class BookingService : IBookingService
     public async Task<BookingResponseDto> CreateBookingAsync(BookingRequestDto request, string idempotencyKey)
     {
         var hash = Hash(JsonSerializer.Serialize(request));
-        var existingKey = await _db.IdempotencyKeys.Include(x => x.ResultBookingId).SingleOrDefaultAsync(x => x.ClientId == request.ClientId && x.Key == idempotencyKey);
+        var existingKey = await _db.IdempotencyKeys.SingleOrDefaultAsync(x => x.ClientId == request.ClientId && x.Key == idempotencyKey);
         if (existingKey is not null)
         {
             if (existingKey.RequestHash != hash) throw new InvalidOperationException("Idempotency-Key was already used with another payload.");

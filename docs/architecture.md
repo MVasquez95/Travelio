@@ -1,11 +1,24 @@
 # Arquitectura del MVP
 
-Travelio es un monolito modular desplegado como dos procesos: `Travelio.Api` atiende las solicitudes HTTP y `Travelio.Workers` ejecuta tareas de expiración. Ambos comparten PostgreSQL, Redis y los contratos del dominio.
+Travelio usa un **monolito modular**. Es la decisión adecuada para este MVP: conserva límites claros y buenas prácticas sin el coste operativo de microservicios prematuros.
 
-- **API / Application:** expone Search, Pre-booking y Booking; coordina los casos de uso sin conocer formatos específicos de proveedores.
-- **Infrastructure:** contiene los adaptadores HTTP de proveedores, EF Core/PostgreSQL y Redis. Cada proveedor conserva su contrato propio detrás de `ProviderAdapter`.
-- **PostgreSQL:** fuente de verdad para búsquedas, ofertas normalizadas, holds, reservas e idempotencia.
-- **Redis:** cachea búsquedas por 30 segundos y protege el pre-booking mediante un lock distribuido por oferta.
-- **Worker:** marca holds vencidos y solicita al proveedor liberar su reserva.
+| Componente | Responsabilidad |
+| --- | --- |
+| `Travelio.Api` | API REST, validación, errores, health y métricas. |
+| `Travelio.Application` | Contratos DTO e interfaces de casos de uso. |
+| `Travelio.Domain` | Entidades de negocio: oferta, hold, booking, proveedor e idempotencia. |
+| `Travelio.Infrastructure` | EF Core/PostgreSQL, Redis y adaptadores HTTP de proveedores. |
+| `Travelio.Workers` | Expira holds y reconcilia bookings en estado `unknown`. |
+| `provider-simulator` | Dos proveedores FastAPI con formatos, latencias y endpoints distintos. |
 
-La confirmación usa `clientId + Idempotency-Key` y una huella del payload. Una repetición con el mismo payload devuelve la reserva creada; con otro payload se rechaza. Si el proveedor agota el timeout, la reserva queda en `unknown`, estado diseñado para una futura reconciliación.
+## Datos y resiliencia
+
+- **PostgreSQL** conserva búsquedas, ofertas normalizadas, holds, reservas e idempotencia.
+- **Redis** cachea búsquedas durante 30 segundos y aplica un lock por oferta al crear un hold.
+- Cada proveedor queda detrás de `ProviderAdapter`; la API no expone sus formatos internos.
+- Los timeouts o resultados inciertos producen el estado `unknown`; el worker reintenta la confirmación con la misma clave de idempotencia.
+- Prometheus recoge métricas HTTP desde `/metrics`; `/health` comprueba PostgreSQL y Redis.
+
+## Decisión de idempotencia
+
+La unicidad se define por `clientId + Idempotency-Key`. Travelio guarda además el hash del payload: una repetición idéntica devuelve la reserva existente; reutilizar la clave con otro payload se rechaza.

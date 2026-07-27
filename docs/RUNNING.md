@@ -1,59 +1,56 @@
-Running Travelio MVP (local development)
+# Guía de ejecución y demo
 
-Prerequisites
-- .NET 8 SDK installed
-- Docker (optional, for docker-compose)
-- Python 3.11 (optional, to run provider simulators directly)
+## Requisitos
 
-Quickstart (using docker-compose)
-1. Start infra and provider simulators:
-   docker-compose up --build
-   This will start Postgres (5432), Redis (6379), provider simulators (9001,9002), Prometheus (9090) and Grafana (3000).
+- Docker Desktop en ejecución.
+- Opcional para desarrollo local: .NET SDK 8.
 
-2. Create database schema (once Postgres is ready):
-   psql -h localhost -U travelio -d travelio -f ddl.sql
+## Levantar el stack
 
-3. Build and run the API locally:
-   dotnet build src\Travelio.slnx
-   dotnet run --project src\Travelio.Api\Travelio.Api.csproj
+Desde la raíz del repositorio:
 
-   The API listens on the default Kestrel port (check console output), typically http://localhost:5000
+```powershell
+docker compose up -d --build
+docker compose ps
+Invoke-WebRequest http://localhost:8080/health
+```
 
-Manual (without Docker)
-1. Run provider simulators locally:
-   python provider_simulator_1.py --port 9001
-   python provider_simulator_2.py --port 9002
+El esquema PostgreSQL se inicializa desde `ddl.sql` cuando se crea el volumen por primera vez. Para reiniciar **todos los datos locales**:
 
-2. Run Postgres and Redis locally (or use Docker for those services).
+```powershell
+docker compose down -v
+docker compose up -d --build
+```
 
-3. Build and run the API as above.
+## Endpoints
 
-Testing the endpoints
-- Search:
-  POST /api/v1/search
-  Body example:
-  {
-    "origin": "BOG",
-    "destination": "MDE",
-    "startDate": "2026-10-01",
-    "endDate": "2026-10-05",
-    "passengers": 2
-  }
+| Servicio | URL |
+| --- | --- |
+| API | `http://localhost:8080` |
+| Health | `http://localhost:8080/health` |
+| Métricas | `http://localhost:8080/metrics` |
+| Prometheus | `http://localhost:9090` |
+| Grafana | `http://localhost:3000` |
 
-- Prebooking:
-  POST /api/v1/prebookings
-  Body example: { "clientId": "partner-1", "offerId": "<offer id from search>", "searchId": "<search id>" }
+## Flujo manual
 
-- Booking (idempotent):
-  POST /api/v1/bookings
-  Headers: Idempotency-Key: <uuid>
-  Body example: { "clientId": "partner-1", "preBookingId": "<prebooking id>" }
+1. `POST /api/v1/search` con `origin`, `destination`, `startDate`, `endDate` y `passengers`.
+2. Selecciona una oferta cuyo campo `bookable` sea `true`.
+3. `POST /api/v1/prebookings` con `clientId`, `offerId` y `searchId`.
+4. `POST /api/v1/bookings` con el header `Idempotency-Key` y el `preBookingId` recibido.
+5. Repite exactamente el paso anterior: debe devolver el mismo `bookingId`.
+6. Consulta `GET /api/v1/bookings/{bookingId}` o cancela con `POST /api/v1/bookings/{bookingId}/cancel`.
 
-Next steps
-- Implement Idempotency middleware to validate and persist Idempotency-Key at middleware level.
-- Implement Redis-based distributed locks for pre-bookings.
-- Implement HostedService worker to expire pre-bookings and reconcile with providers.
-- Add integration tests that start provider simulators and exercise end-to-end flows.
+Ejemplo de búsqueda:
 
-Contact
-- This repo was scaffolded by an AI assistant using Copilot CLI runtime in VS Code.
+```powershell
+$body = @{ origin='LIM'; destination='CUZ'; startDate='2026-10-01T00:00:00Z'; endDate='2026-10-05T00:00:00Z'; passengers=2 } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/search -ContentType application/json -Body $body
+```
+
+## Verificación de código
+
+```powershell
+dotnet build src/Travelio.slnx --no-restore
+dotnet test src/Travelio.Tests/Travelio.Tests.csproj --no-restore
+```
